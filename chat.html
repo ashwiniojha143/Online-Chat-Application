@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Chat</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #6dd5ed, #2193b0);
+            margin: 0;
+            padding: 0;
+        }
+        #chat-container {
+            width: 80%;
+            margin: 50px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        #chat-header {
+            background: #34495e;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+        #chat-box {
+            height: 400px;
+            overflow-y: scroll;
+            padding: 10px;
+            background: #ecf0f1;
+        }
+        .message {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .message.user {
+            background: #1abc9c;
+            color: white;
+        }
+        .message.other {
+            background: #95a5a6;
+            color: white;
+        }
+        #message-input {
+            width: 80%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        #send-button, #reset-button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #reset-button {
+            background: #e74c3c;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-header">Welcome, {{ username }}</div>
+        <div id="chat-box">
+            {% for message in messages %}
+                <div class="message {% if message.username == username %}user{% else %}other{% endif %}">
+                    <strong>{{ message.username }}:</strong> {{ message.text }}
+                </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; padding: 10px;">
+            <input type="text" id="message-input" placeholder="Type your message here...">
+            <button id="send-button">Send</button>
+            <button id="reset-button">Reset Chat</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const resetButton = document.getElementById('reset-button');
+        const username = "{{ username }}";
+
+        // Send message to the server
+        sendButton.addEventListener('click', () => {
+            const message = messageInput.value;
+            if (message.trim()) {
+                socket.send({ username: username, text: message });
+                messageInput.value = '';
+            }
+        });
+
+        // Reset chat
+        resetButton.addEventListener('click', () => {
+            chatBox.innerHTML = '';  // Clear the chat history for the current session
+            socket.emit('reset');  // Notify the server to reset chat
+        });
+
+        // Display received messages
+        socket.on('message', (data) => {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message ' + (data.username === username ? 'user' : 'other');
+            messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.text}`;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    </script>
+</body>
+</html>
